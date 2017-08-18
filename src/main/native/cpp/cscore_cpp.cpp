@@ -14,6 +14,11 @@
 #include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+#include <Winsock2.h>
+#pragma comment(lib, "Ws2_32.lib")
+#endif
+
 #include "llvm/SmallString.h"
 
 #include "Handle.h"
@@ -612,15 +617,23 @@ llvm::ArrayRef<CS_Sink> EnumerateSinkHandles(
   return Sinks::GetInstance().GetAll(vec);
 }
 
+#ifdef _WIN32
+struct WSAHelper {
+  WSAHelper() {
+    WSAData wsaData;
+    WORD wVersionRequested = MAKEWORD(2, 2);
+    WSAStartup(wVersionRequested, &wsaData);
+  }
+  ~WSAHelper() { WSACleanup(); }
+};
+static WSAHelper helper;
+#endif
+
 std::string GetHostname() {
-#ifdef __linux__
   char name[256];
   if (::gethostname(name, sizeof(name)) != 0) return "";
   name[255] = '\0';  // Per POSIX, may not be null terminated if too long
   return name;
-#else
-  return "";  // TODO
-#endif
 }
 
 std::vector<std::string> GetNetworkInterfaces() {
