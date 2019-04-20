@@ -30,7 +30,9 @@
 
 namespace cs {
 
-class UsbCameraImpl : public SourceImpl {
+class ObjCData;
+
+class UsbCameraImpl : public SourceImpl, public std::enable_shared_from_this<UsbCameraImpl> {
  public:
   UsbCameraImpl(llvm::StringRef name, llvm::StringRef path);
   ~UsbCameraImpl() override;
@@ -60,6 +62,10 @@ class UsbCameraImpl : public SourceImpl {
 
   void NumSinksChanged() override;
   void NumSinksEnabledChanged() override;
+
+#ifdef __APPLE__
+  void PutFrameInternal(std::unique_ptr<Image> image, Frame::Time time);
+#endif
 
   std::string GetPath() { return m_path; }
 
@@ -108,8 +114,13 @@ class UsbCameraImpl : public SourceImpl {
   void CameraThreadMain();
 
   // Functions used by CameraThreadMain()
+#ifdef __APPLE__
+  void DeviceDisconnect(ObjCData* data);
+  void DeviceConnect(ObjCData* data);
+#else
   void DeviceDisconnect();
   void DeviceConnect();
+#endif
   bool DeviceStreamOn();
   bool DeviceStreamOff();
   void DeviceProcessCommands();
@@ -162,6 +173,12 @@ class UsbCameraImpl : public SourceImpl {
 
   std::atomic_bool m_active;  // set to false to terminate thread
   std::thread m_cameraThread;
+
+#ifdef __APPLE__
+  std::mutex m_cameraMutex;
+  std::condition_variable m_cameraCv;
+  Frame::Time m_lastCameraUpdateTime;
+#endif
 
   // Quirks
   bool m_hd3000{false};  // Microsoft LifeCam HD-3000

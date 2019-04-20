@@ -33,6 +33,7 @@ ext.getJNIHeadersClass = {
 }
 
 apply plugin: 'cpp'
+apply plugin: 'objective-cpp'
 apply plugin: 'google-test'
 apply plugin: 'visual-studio'
 apply plugin: 'edu.wpi.first.NativeUtils'
@@ -172,6 +173,15 @@ model {
                         srcDirs 'src/main/native/include'
                     }
                 }
+                objcpp {
+                    source {
+                        srcDirs 'src/main/native/objectivecpp'
+                        include '**/*.mm'
+                    }
+                    exportedHeaders {
+                        srcDirs 'src/main/native/include', 'src/main/native/cpp'
+                    }
+                }
             }
         }
         cscoreJNI(NativeLibrarySpec) {
@@ -184,6 +194,15 @@ model {
                     }
                     exportedHeaders {
                         srcDirs 'src/main/native/include'
+                    }
+                }
+                objcpp {
+                    source {
+                        srcDirs 'src/main/native/objectivecpp'
+                        include '**/*.mm'
+                    }
+                    exportedHeaders {
+                        srcDirs 'src/main/native/include', 'src/main/native/cpp'
                     }
                 }
             }
@@ -217,6 +236,11 @@ model {
         }
     }
     binaries {
+        all {
+            if (toolChain in Clang) {
+                objcppCompiler.args('-std=gnu++14', '-stdlib=libc++','-fobjc-arc', '-arch x86_64')
+            }
+        }
         withType(StaticLibraryBinarySpec) {
             if (it.component.name == 'cscoreJNI') {
                 it.buildable = false
